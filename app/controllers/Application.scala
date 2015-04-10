@@ -5,8 +5,6 @@ import models.WordListHandler
 import play.api.data.Forms._
 import play.api.mvc._
 import play.api.data.Form
-import play.api.data._
-import akka.actor.ActorRef
 import akka.util.Timeout
 import akka.pattern.ask
 import play.libs.Akka
@@ -26,6 +24,7 @@ object Application extends Controller {
       "link" -> nonEmptyText,
       "duration" -> text)
       (CreateShortenedLink.apply)(CreateShortenedLink.unapply)
+      verifying("Duration must be a digit", shortenedLink => isNumber(shortenedLink.duration))
   )
 
   def index = Action {
@@ -37,16 +36,19 @@ object Application extends Controller {
       linkShortenerForm.bindFromRequest.fold({
         hasErrors => Redirect(routes.Application.index())
     },
-        shortenedLink => Redirect(routes.Application.createShortLinkAsync(shortenedLink.link, shortenedLink.duration)))
+        originalLink =>
+        {
+          Redirect(routes.Application.createShortLinkAsync(originalLink.link, originalLink.duration, getFullUrl(request)))}
+      )
     }
 
 
-def createShortLinkAsync(link: String, duration: String) = Action.async{
-  val resFuture = WordListHandler.actorReference ? CreateShortenedLink(link, duration)
+def createShortLinkAsync(originalLink: String, duration: String, fullUrl: String) = Action.async{
+  val resFuture = WordListHandler.actorReference ? CreateShortenedLink(originalLink, duration)
   val timeoutFuture = play.api.libs.concurrent.Promise.timeout("Oops", 3.second)
   Future.firstCompletedOf(Seq(resFuture, timeoutFuture)).map {
     case result: Option[String] => result match {
-      case Some(word) => Ok(views.html.showlink(word))
+      case Some(word) => Ok(views.html.showlink(  fullUrl + "/" + word))
       case None =>  Ok(views.html.showlink("No more words available to use"))
     }
     case err: String  =>Ok(views.html.showlink("Internal Server Error"))
@@ -66,6 +68,17 @@ def createShortLinkAsync(link: String, duration: String) = Action.async{
         case None =>  Ok(views.html.showlink("Link not found"))
       }
       case err: String  => Ok(views.html.showlink("Internal Server Error"))
+    }
+  }
+
+  private def getFullUrl(request: Request[AnyContent]) = "http://" + request.host + request.path
+
+  private def isNumber(text: String)= {
+    try{
+      text.toLong
+      true
+    }catch{
+      case e: NumberFormatException => false
     }
   }
 

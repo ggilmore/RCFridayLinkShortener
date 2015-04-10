@@ -38,7 +38,7 @@ class WordListHandler extends Actor {
     case GetLink(link) => {
       retrieveLink(link) match {
         case Some(link) => {
-          val target = if (link.startsWith("http://")) link else "http://"+link
+          val target = if (link.startsWith("http://") || link.startsWith("https://")) link else "http://"+link
           sender ! Some(target)
         }
         case None => sender ! None
