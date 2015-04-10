@@ -5,8 +5,8 @@ package Util.Messages
  */
 sealed trait ActorCommandMessage
 
-case class CreateShortenedLink(link:String) extends ActorCommandMessage
+case class CreateShortenedLink(link:String, duration:String = "5" ) extends ActorCommandMessage
 
-case class GetLink(link:String, duration:String = "5" ) extends ActorCommandMessage
+case class GetLink(link:String) extends ActorCommandMessage
 
 case class RetireLink(link:String) extends ActorCommandMessage

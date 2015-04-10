@@ -11,6 +11,7 @@ import akka.actor.{Props, ActorRef, Actor}
 import play.api.Play.current
 import play.api.libs.concurrent.Akka
 import play.api.libs.json.{JsValue, Json}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.collection.mutable.{Set, Map}
 
