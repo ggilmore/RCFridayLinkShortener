@@ -1,6 +1,22 @@
-@(message: String)
+@(myForm: Form[Util.Messages.CreateShortenedLink])
+
+@import helper._
 
 @main("Welcome to Play") {
-    @play20.welcome(message)
+    @helper.form(action = routes.Application.createShortLink()){
+        @inputText(
+            myForm("link"),
+            'id -> "link",
+            '_label -> "Enter URL Here"
+        )
+
+        @inputText(
+            myForm("duration"),
+            'id -> "duration",
+            '_label -> "Enter the # of minutes that the link should stay alive"
+        )
+
+        <input type="submit" value="Create Link">
+    }
 
 }

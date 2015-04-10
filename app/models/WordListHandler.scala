@@ -19,9 +19,11 @@ import scala.collection.mutable.{Set, Map}
  * Created by gmgilmore on 4/10/15.
  */
 object WordListHandler {
-  val filePath = WordListHandler.getClass.getResource("words.txt").toString
+//  val filePath = WordListHandler.getClass.getResource("words.txt").toString
+//  require(filePath != null)
+  println("WHAT ABOUT HERE")
   private val originalWordList:mutable.Set[String] = mutable.Set() ++
-    Source.fromFile(new File(filePath)).getLines.toSeq.filterNot(x => x.isEmpty).map(x=>x.trim)
+    Source.fromFile(new File("app/resources/words.txt")).getLines.toSeq.filterNot(x => x.isEmpty).map(x=>x.trim)
   private val usedWords:mutable.Set[String] = Set()
   private val shortenedToOriginalMap:mutable.Map[String, String] = Map()
   val actorReference:ActorRef = Akka.system.actorOf(Props[WordListHandler], "Handler")
@@ -32,13 +34,22 @@ object WordListHandler {
 class WordListHandler extends Actor {
 
   def receive = {
-    case CreateShortenedLink(link, duration) =>
+    case CreateShortenedLink(link, duration) => createLink(link, duration)
     case GetLink(link) => {
-      sender ! retrieveLink(link)
+      retrieveLink(link) match {
+        case Some(link) => {
+          val target = if (link.startsWith("http://")) link else "http://"+link
+          sender ! Some(target)
+        }
+        case None => sender ! None
+
+      }
     }
   }
 
-  def retrieveLink(link:String):Option[String] = WordListHandler.shortenedToOriginalMap.get(link)
+  def retrieveLink(link:String):Option[String] = {
+    println(WordListHandler.shortenedToOriginalMap)
+    WordListHandler.shortenedToOriginalMap.get(link)}
 
   def createLink(link:String, duration:String):Unit = {
     if (WordListHandler.originalWordList.nonEmpty){
@@ -50,13 +61,14 @@ class WordListHandler extends Actor {
 
 
       val shouldRetire: Future[Boolean] = Future {
-        Thread.sleep(duration.toLong)
+        Thread.sleep((duration.toLong)*1000*60)
         true
       }
 
       shouldRetire map {
         isExpired => if(isExpired) retireLink(someWord)
       }
+      println(WordListHandler.shortenedToOriginalMap)
       sender ! Some(someWord)
     }
     else sender ! None
